@@ -1,78 +1,302 @@
-# vecdb
+# NovaDB - AI Vector Database in C++
 
-A vector database engine built from scratch in C++20, designed around a
-contiguous-memory, offset-addressed storage layout (no embeddings inside
-records, no per-vector heap allocations, SIMD-friendly scans).
+> A lightweight vector database built from scratch in C++ for storing, persisting, and searching high-dimensional AI embeddings.
 
-## Layout
+![C++](https://img.shields.io/badge/C%2B%2B-14-blue)
+![Status](https://img.shields.io/badge/Status-In%20Development-orange)
+![License](https://img.shields.io/badge/License-MIT-green)
+
+---
+
+## Overview
+
+NovaDB is an educational yet production-inspired vector database implemented entirely in C++. The project demonstrates how modern vector databases used in AI systems store, persist, and retrieve embeddings efficiently.
+
+Unlike traditional databases that search by exact values, NovaDB performs **similarity search** over dense vector embeddings using mathematical distance metrics such as cosine similarity.
+
+The project is built completely from scratch without using external database libraries.
+
+---
+
+## Features
+
+- Offset-based vector storage architecture
+- Contiguous embedding storage for cache efficiency
+- Binary serialization and persistence
+- CRUD operations
+- Cosine Similarity
+- Dot Product
+- Euclidean Distance
+- Optimized Top-K retrieval using Min Heap
+- Custom storage engine
+- Zero-copy embedding access
+- Modular database architecture
+
+---
+
+## Project Architecture
 
 ```
-vectordb/
-├── CMakeLists.txt          Top-level build config (C++20, warnings, sanitizers)
-├── include/vecdb/          Public headers, one folder per module
-│   ├── storage/            Memory mapper, embedding pool, record table, text/metadata stores
-│   ├── index/              ISimilarityIndex seam, brute-force, later HNSW
-│   ├── query/              Query engine: orchestrates read/write paths
-│   ├── similarity/         SIMD distance kernels (AVX2/AVX512)
-│   ├── threading/          Thread pool for parallel scans
-│   ├── wal/                Write-ahead log + crash recovery
-│   ├── config/             Configuration manager
-│   └── logging/            Logger
-├── src/                    Implementation (.cpp), mirrors include/vecdb/ structure
-├── tests/                  GoogleTest unit tests, one file per module
-├── benchmarks/             Google Benchmark suite (throughput, latency, recall@k)
-├── api/
-│   ├── rest/                Thin REST layer over the query engine
-│   └── python_sdk/          pybind11 bindings
-├── third_party/             Vendored dependencies (if any, beyond FetchContent)
-├── cmake/                    Custom CMake modules/helpers
-└── data/                     Runtime output: records.bin, embeddings.bin, texts.bin,
-                               metadata.bin, wal.log (gitignored)
+                    +----------------+
+                    |    VectorDB    |
+                    +--------+-------+
+                             |
+          +------------------+------------------+
+          |                                     |
+          v                                     v
+ +-------------------+              +-------------------+
+ |  Embedding Pool   |              |    Record Table   |
+ +-------------------+              +-------------------+
+          |                                     |
+          +------------------+------------------+
+                             |
+                             v
+                   +-------------------+
+                   |  Storage Engine   |
+                   +--------+----------+
+                            |
+              +-------------+-------------+
+              |                           |
+              v                           v
+      BinarySerializer             FileManager
+              |                           |
+              +-------------+-------------+
+                            |
+                            v
+                   Binary Database Files
 ```
 
-## Design rules this codebase follows
+---
 
-- **No embedded vectors in records.** Records store only `{id, embeddingOffset,
-  textOffset, metadataOffset}`. Embeddings live in one contiguous, aligned pool.
-- **Dependencies point downward only.** Query Engine → Index Engine → Storage
-  Engine → Disk. Storage has zero knowledge of indexing or querying.
-- **One virtual seam.** `ISimilarityIndex` is the only vtable boundary in the
-  hot path; everything below it (SIMD kernels, memory access) is templates/CRTP.
-- **Durability before visibility.** Writes hit the WAL before the data pools,
-  and the record table commit is the last step, making it the single
-  linearization point for read visibility.
-- **Zero-copy reads.** Text/metadata are returned as `std::span<const std::byte>`
-  views into mapped memory, never copied into `std::string`.
+## Folder Structure
 
-## Building
+```
+NovaDB/
+│
+├── include/
+│   ├── core/
+│   ├── storage/
+│   └── search/
+│
+├── src/
+│   ├── core/
+│   ├── storage/
+│   └── search/
+│
+├── tests/
+│
+├── data/
+│
+├── README.md
+│
+└── LICENSE
+```
+
+---
+
+## Core Components
+
+### VectorDB
+
+Main interface of the database.
+
+Responsible for
+
+- Insert
+- Update
+- Delete
+- Retrieve
+- Search
+
+---
+
+### EmbeddingPool
+
+Stores all embedding vectors inside one contiguous memory block.
+
+Instead of
+
+```
+vector<vector<float>>
+```
+
+NovaDB stores
+
+```
+vector<float>
+```
+
+This significantly improves cache locality and reduces heap fragmentation.
+
+---
+
+### Record Table
+
+Stores metadata for every vector.
+
+```cpp
+struct Record
+{
+    uint64_t id;
+    uint64_t embeddingOffset;
+    uint32_t dimension;
+    uint64_t metadataOffset;
+    uint8_t active;
+};
+```
+
+The actual embedding remains inside the Embedding Pool.
+
+---
+
+### Storage Engine
+
+Responsible for
+
+- Saving database
+- Loading database
+- Binary persistence
+
+---
+
+### Binary Serializer
+
+Converts C++ objects into binary format and reconstructs them during loading.
+
+---
+
+### Similarity Engine
+
+Supports
+
+- Cosine Similarity
+- Dot Product
+- Euclidean Distance
+
+---
+
+### Top-K Heap
+
+Maintains only the K highest-scoring vectors during search.
+
+Complexity
+
+```
+O(N log K)
+```
+
+instead of
+
+```
+O(N log N)
+```
+
+---
+
+## Search Pipeline
+
+```
+Query Embedding
+
+        │
+
+        ▼
+
+Similarity Engine
+
+        │
+
+        ▼
+
+Top-K Heap
+
+        │
+
+        ▼
+
+Most Similar Results
+```
+
+---
+
+## Complexity Analysis
+
+| Operation | Complexity |
+|-----------|------------|
+| Insert | O(d) |
+| Update | O(d) |
+| Delete | O(1) |
+| Lookup | O(1) Average |
+| Cosine Similarity | O(d) |
+| Dot Product | O(d) |
+| Euclidean Distance | O(d) |
+| Top-K Search | O(N log K) |
+
+Where
+
+- **N** = Number of vectors
+- **d** = Embedding dimension
+- **K** = Requested results
+
+---
+
+## Build
+
+Compile using GCC
 
 ```bash
-cmake -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j
-ctest --test-dir build
+g++ -std=c++14 -Iinclude src/**/*.cpp -o novadb
 ```
 
-Options:
-- `-DVECDB_BUILD_TESTS=OFF` — skip unit tests (GoogleTest, fetched via CMake)
-- `-DVECDB_BUILD_BENCHMARKS=OFF` — skip benchmarks (Google Benchmark, fetched via CMake)
-- `-DVECDB_ENABLE_AVX512=ON` — compile AVX-512 kernels (runtime-dispatched, falls
-  back to AVX2 if the CPU doesn't support it)
+Example
 
-## Status
+```bash
+g++ -std=c++14 -Iinclude tests/test_similarity.cpp src/search/Similarity.cpp -o test_similarity
+```
 
-Project skeleton only. Modules are implemented in this order:
+---
 
-1. Memory Mapper *(next)*
-2. Embedding Pool
-3. Record Table
-4. Text Store + Metadata Store
-5. Binary serialization format
-6. Similarity Engine (SIMD brute-force)
-7. Thread Pool
-8. Query Engine
-9. WAL + crash recovery
-10. Config Manager + Logger
-11. HNSW index
-12. Benchmark suite
-13. REST API
-14. Python SDK
+## Future Work
+
+- Approximate Nearest Neighbor (ANN)
+- HNSW Index
+- Product Quantization
+- SIMD Optimization
+- Metadata Filtering
+- REST API
+- Multithreading
+- Benchmark Suite
+- Python SDK
+
+---
+
+## Learning Objectives
+
+This project was built to understand the internal architecture of modern vector databases such as
+
+- FAISS
+- Milvus
+- ChromaDB
+- Pinecone
+- Qdrant
+- Weaviate
+
+while implementing the core components from scratch in C++.
+
+---
+
+## Author
+
+**Amar Barade**
+
+B.Tech CSE, VNIT Nagpur
+
+GitHub: https://github.com/your-github
+
+LinkedIn: https://linkedin.com/in/your-linkedin
+
+---
+
+## License
+
+MIT License
