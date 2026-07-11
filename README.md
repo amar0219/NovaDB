@@ -291,9 +291,9 @@ while implementing the core components from scratch in C++.
 
 B.Tech CSE, VNIT Nagpur
 
-GitHub: https://github.com/your-github
+GitHub: https://github.com/amar0219
 
-LinkedIn: https://linkedin.com/in/your-linkedin
+LinkedIn: https://www.linkedin.com/in/amar-barade-707234326
 
 ---
 
