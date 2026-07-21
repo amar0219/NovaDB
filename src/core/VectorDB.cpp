@@ -5,6 +5,10 @@
 namespace novadb
 {
 
+VectorDB::VectorDB(): storageEngine_("records.bin","embeddings.bin")
+{
+}
+
 bool VectorDB::insert(uint64_t id,
                       const std::vector<float>& embedding)
 {
@@ -95,5 +99,49 @@ EmbeddingView VectorDB::getEmbedding(uint64_t id) const
         it->second.embeddingOffset,
         it->second.dimension);
 }
+
+bool VectorDB::save()
+{
+    storageEngine_.save(records_, embeddingPool_.getData());
+    return true;
+}
+
+bool VectorDB::load()
+{
+    std::vector<float> embeddings;
+
+    storageEngine_.load(records_, embeddings);
+
+    embeddingPool_.setData(embeddings);
+
+    return true;
+}
+
+
+std::vector<SearchResult> VectorDB::search(
+    const EmbeddingView& query,
+    uint32_t k) const
+{
+    SearchEngine engine;
+
+    return engine.search(
+        embeddingPool_,
+        records_,
+        query,
+        k
+    );
+}
+
+const EmbeddingPool& VectorDB::getEmbeddingPool() const
+{
+    return embeddingPool_;
+}
+
+const std::unordered_map<uint64_t, Record>&
+VectorDB::getRecords() const
+{
+    return records_;
+}
+
 
 } // namespace novadb

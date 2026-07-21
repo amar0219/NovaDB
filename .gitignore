@@ -1,0 +1,32 @@
+# Executables
+*.exe
+*.out
+
+# Object files
+*.o
+*.obj
+
+# Libraries
+*.dll
+*.so
+*.a
+*.lib
+
+# Build directories
+build/
+cmake-build-*/
+
+# Database files
+*.bin
+
+# Visual Studio Code
+.vscode/
+
+# CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Temporary files
+*.log

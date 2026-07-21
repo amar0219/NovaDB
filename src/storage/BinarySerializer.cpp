@@ -12,8 +12,10 @@ namespace
     template <typename T>
     void writePrimitive(std::vector<std::uint8_t>& buffer, const T& value)
     {
-        static_assert(std::is_trivially_copyable_v<T>);
-
+        static_assert(
+            std::is_trivially_copyable<T>::value,
+            "Type must be trivially copyable"
+        );
         const auto* ptr = reinterpret_cast<const std::uint8_t*>(&value);
 
         buffer.insert(buffer.end(), ptr, ptr + sizeof(T));
@@ -22,9 +24,12 @@ namespace
     template <typename T>
     T readPrimitive(const std::vector<std::uint8_t>& buffer, size_t& offset)
     {
-        static_assert(std::is_trivially_copyable_v<T>);
+        static_assert(
+            std::is_trivially_copyable<T>::value,
+            "Type must be trivially copyable"
+        );
 
-        if(offset + sizeof(T))> buffer.size())
+        if(offset + sizeof(T) > buffer.size())
             throw std::runtime_error("currupted buffer: not enough bytes to read");
 
         T value;
@@ -51,9 +56,10 @@ std::vector<std::uint8_t> BinarySerializer::serializeRecords(const std::unordere
 
     sortedRecords.reserve(records.size());
 
-    for(const auto& [id, record] : records)
+    for(const auto& entry : records)
     {
-        sortedRecords.push_back(record);
+
+        sortedRecords.push_back(entry.second);
     }
 
     std::sort(
@@ -100,7 +106,7 @@ std::unordered_map<uint64_t, Record> BinarySerializer::deserializeRecords(const 
 
         record.embeddingOffset = readPrimitive<uint64_t>(buffer, offset);
 
-        record.dimension = readPrimitive<uint64_t>(buffer, offset);
+        record.dimension = readPrimitive<uint32_t>(buffer, offset);
 
         record.metadataOffset = readPrimitive<uint64_t>(buffer, offset);
 
