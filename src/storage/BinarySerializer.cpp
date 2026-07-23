@@ -106,7 +106,7 @@ std::unordered_map<uint64_t, Record> BinarySerializer::deserializeRecords(const 
 
         record.embeddingOffset = readPrimitive<uint64_t>(buffer, offset);
 
-        record.dimension = readPrimitive<uint32_t>(buffer, offset);
+        record.dimension = readPrimitive<uint64_t>(buffer, offset);
 
         record.metadataOffset = readPrimitive<uint64_t>(buffer, offset);
 

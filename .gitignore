@@ -30,3 +30,17 @@ Makefile
 
 # Temporary files
 *.log
+
+build/
+*.exe
+*.obj
+*.o
+
+.venv/
+__pycache__/
+*.pyc
+
+records.bin
+embeddings.bin
+
+.vscode/

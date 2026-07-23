@@ -23,6 +23,8 @@ public:
     bool insert(uint64_t id,
                 const std::vector<float>& embedding);
 
+    uint64_t insert(const std::vector<float>& embedding);
+
     bool erase(uint64_t id);
 
     bool update(uint64_t id,
@@ -53,6 +55,8 @@ private:
     std::unordered_map<uint64_t, Record> records_;
 
     StorageEngine storageEngine_;
+
+    uint64_t nextId_ = 1;
 };
 
 }

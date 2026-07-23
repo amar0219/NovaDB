@@ -1,5 +1,5 @@
 #include "core/VectorDB.h"
-
+#include <iostream>
 #include <stdexcept>
 
 namespace novadb
@@ -9,8 +9,7 @@ VectorDB::VectorDB(): storageEngine_("records.bin","embeddings.bin")
 {
 }
 
-bool VectorDB::insert(uint64_t id,
-                      const std::vector<float>& embedding)
+bool VectorDB::insert(uint64_t id, const std::vector<float>& embedding)
 {
     if (records_.find(id) != records_.end())
     {
@@ -27,6 +26,18 @@ bool VectorDB::insert(uint64_t id,
     records_[id] = record;
 
     return true;
+}
+
+uint64_t VectorDB::insert(const std::vector<float>& embedding)
+{
+    while(records_.find(nextId_) != records_.end())
+    {
+        ++nextId_;
+    }
+
+    insert(nextId_, embedding);
+
+    return nextId_++;
 }
 
 bool VectorDB::erase(uint64_t id)
@@ -106,13 +117,26 @@ bool VectorDB::save()
     return true;
 }
 
+#include <iostream>
+
 bool VectorDB::load()
 {
     std::vector<float> embeddings;
 
     storageEngine_.load(records_, embeddings);
 
+    
     embeddingPool_.setData(embeddings);
+
+    nextId_ = 1;
+
+    for(const auto& entry : records_)
+    {
+        if(entry.first >= nextId_)
+        {
+            nextId_ = entry.first + 1;
+        }
+    }
 
     return true;
 }
