@@ -1,7 +1,9 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <chrono>
 #include <cstdlib>
+#include <iomanip>
 
 #include "../include/core/VectorDB.h"
 
@@ -13,7 +15,7 @@ void printUsage()
     cout << "NovaDB CLI\n\n";
 
     cout << "Usage:\n";
-    cout << "  novadb_cli insert <id> <v1> <v2> ...\n";
+    cout << "  novadb_cli insert <v1> <v2> ...\n";
     cout << "  novadb_cli search <k> <q1> <q2> ...\n";
     cout << "  novadb_cli get <id>\n";
     cout << "  novadb_cli delete <id>\n";
@@ -42,7 +44,7 @@ int main(int argc, char* argv[])
 
     if(command == "insert")
     {
-        if(argc < 4)
+        if(argc < 3)
         {
             cout << "{\"error\":\"Invalid arguments\"}" << endl;
             return 1;
@@ -99,13 +101,15 @@ int main(int argc, char* argv[])
         cout << "{\n";
         cout << "  \"results\": [\n";
 
+        cout << fixed << setprecision(6);
+
         for(size_t i = 0; i < results.size(); i++)
         {
             cout << "    {\"id\": "
-                 << results[i].id
-                 << ", \"score\": "
-                 << results[i].score
-                 << "}";
+                << results[i].id
+                << ", \"score\": "
+                << results[i].score
+                << "}";
 
             if(i + 1 != results.size())
                 cout << ",";
@@ -214,7 +218,6 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-    //-------------------------------------------------------
 
     cout << "{\"error\":\"Unknown command\"}" << endl;
 
